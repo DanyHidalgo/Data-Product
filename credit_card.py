@@ -1,4 +1,5 @@
 import pandas as pd
+import joblib
 
 # visualización
 import matplotlib.pyplot as plt
@@ -123,15 +124,26 @@ best_log_reg.fit(X_train, y_train)
 # PREDICCION
 y_pred = best_log_reg.predict(X_test)
 
-# PARAMETROS
-print("Mejores parámetros:", grid_log_reg.best_params_)
-print("Accuracy:", accuracy_score(y_test, y_pred))
-print("Precision:", precision_score(y_test, y_pred))
-print("Recall:", recall_score(y_test, y_pred))
-print("F1 Score:", f1_score(y_test, y_pred))
-print("ROC AUC Score:", roc_auc_score(y_test, y_pred))
-print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+# GUARDAR MODELO COMO .PKL
+joblib.dump(best_log_reg, "best_logistic_model.pkl")
 
+
+# GUARDAR X_test y y_test
+joblib.dump(X_test, "X_test.pkl")
+joblib.dump(y_test, "y_test.pkl")
+
+# DICCIONARIO METRICAS
+metrics = {
+    "accuracy": accuracy_score(y_test, y_pred),
+    "precision": precision_score(y_test, y_pred),
+    "recall": recall_score(y_test, y_pred),
+    "f1_score": f1_score(y_test, y_pred),
+    "roc_auc": roc_auc_score(y_test, y_pred),
+    "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(), 
+}
+
+# GUARDAR METRICAS 
+joblib.dump(metrics, "metrics.pkl")
 
 # Guardar parametros en variables
 accuracy = accuracy_score(y_test, y_pred)
