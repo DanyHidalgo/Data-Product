@@ -1,7 +1,7 @@
 # FastAPI framework
 from fastapi import FastAPI
 from pydantic import BaseModel
-from datetime import datetime 
+from datetime import datetime
 import json
 import os
 
@@ -45,7 +45,8 @@ except FileNotFoundError:
         "Métricas no encontradas. Asegúrate de ejecutar credit_card.py primero para calcular y guardar las métricas."
     )
 
-# Modelo para entrenar en tiempo real 
+
+# Modelo para entrenar en tiempo real
 class Transaction(BaseModel):
     Time: float
     V1: float
@@ -77,17 +78,21 @@ class Transaction(BaseModel):
     V27: float
     V28: float
     Amount: float
+    Class: int
+    Hour: float
+    Fraud_Spike: float
 
-# Logs 
+
+# Logs
 def log_request(endpoint: str, request_data: dict, response_data: dict):
     timestamp = datetime.now()
     log_entry = {
         "timestamp": timestamp.isoformat(),
         "request": request_data,
-        "response": response_data
+        "response": response_data,
     }
 
-# Ruta de carpetas
+    # Ruta de carpetas
     log_dir = f"{endpoint}/year={timestamp.year}/month={timestamp.month:02d}/day={timestamp.day:02d}/hour={timestamp.hour:02d}"
     os.makedirs(log_dir, exist_ok=True)
 
@@ -98,11 +103,13 @@ def log_request(endpoint: str, request_data: dict, response_data: dict):
     with open(log_file, "a") as file:
         file.write(json.dumps(log_entry) + "\n")
 
-# Endpoint en tiempo real 
+
+# Endpoint en tiempo real
 @app.get("/metrics")
 async def get_metrics():
     # Devuelve las métricas cargadas desde el archivo
     return metrics
+
 
 # Endpoint en prediccion
 @app.post("/predict")

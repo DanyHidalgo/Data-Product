@@ -44,6 +44,7 @@ labels = [
     "5001-10000",
     "10001+",
 ]
+
 df["Amount Range"] = pd.cut(df["Amount"], bins=bins, labels=labels, right=False)
 
 corr_matrix = df.drop(columns=["Amount Range"]).corr()
@@ -139,10 +140,10 @@ metrics = {
     "recall": recall_score(y_test, y_pred),
     "f1_score": f1_score(y_test, y_pred),
     "roc_auc": roc_auc_score(y_test, y_pred),
-    "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(), 
+    "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(),
 }
 
-# GUARDAR METRICAS 
+# GUARDAR METRICAS
 joblib.dump(metrics, "metrics.pkl")
 
 # Guardar parametros en variables
