@@ -1,5 +1,5 @@
 # FastAPI framework
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 from datetime import datetime
 import json
@@ -110,6 +110,11 @@ async def get_metrics():
     # Devuelve las métricas cargadas desde el archivo
     return metrics
 
+@app.get("/alive")
+async def isalive():
+    
+    return True
+
 
 # Endpoint en prediccion
 @app.post("/predict")
@@ -124,5 +129,20 @@ async def predict(transaction: Transaction):
 
     # Registrar el request y response
     log_request("predict", transaction.dict(), response)
+
+    return response
+
+@app.post("/predict_batch_file")
+async def predict_batch_file(file: UploadFile = File(...)):
+    # Leer el archivo en un DataFrame
+    data = pd.read_csv(file.file)
+    data["Hour"] = (data["Time"] // 3600) % 24
+
+    # Realizar predicciones
+    predictions = model.predict(data)
+    response = {"predictions": predictions.tolist()}
+
+    # Registrar el request y response
+    log_request("predict_batch_file", {"file_name": file.filename}, {"num_predictions": len(predictions)})
 
     return response

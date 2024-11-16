@@ -49,6 +49,9 @@ df["Amount Range"] = pd.cut(df["Amount"], bins=bins, labels=labels, right=False)
 
 corr_matrix = df.drop(columns=["Amount Range"]).corr()
 
+df = df.drop(columns=["Amount Range"])
+
+
 plt.figure(figsize=(20, 16))
 sns.heatmap(
     corr_matrix,
@@ -170,3 +173,15 @@ plt.xlabel("Predicted Label")
 plt.ylabel("True Label")
 plt.title("Matriz de Confusión")
 plt.show()
+
+# Data.scv
+df_clean = df.dropna()
+
+df_subset1 = df_clean.sample(n=50)
+df_subset1.to_csv('Data1.csv', index=False)
+
+df_subset2 = df_clean.sample(n=50)
+df_subset2.to_csv('Data2.csv', index=False)
+
+df_subset3 = df_clean.sample(n=50)
+df_subset3.to_csv('Data3.csv', index=False)
