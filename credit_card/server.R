@@ -1,16 +1,16 @@
 library(shiny)
 library(ggplot2)
 library(DBI)
-library(RPostgreSQL)
+library(RPostgres)
 
 
 # Conectar 
-con <- dbConnect(RPostgreSQL::PostgreSQL(),
-                 dbname = "nombre_de_la_base_de_datos",
-                 host = "host_de_la_base_de_datos",
+con <- dbConnect(RPostgres::Postgres(),
+                 dbname = "test",
+                 host = "127.0.0.1",
                  port = 5432,
-                 user = "usuario_de_la_base_de_datos",
-                 password = "contraseña_del_usuario")
+                 user = "test",
+                 password = "test123")
 
 
 # Server 
