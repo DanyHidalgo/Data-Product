@@ -331,6 +331,8 @@ async def predict_batch_file(file: UploadFile = File(...)):
         y_pred = new_model.predict(X_test)
         y_pred_prob = new_model.predict_proba(X_test)[:, 1]
 
+        response = {"predictions": y_pred.tolist()}
+
         # Calcular métricas
         new_metrics = {
             "accuracy": accuracy_score(y_test, y_pred),
@@ -351,12 +353,7 @@ async def predict_batch_file(file: UploadFile = File(...)):
             {"status": "success", "metrics": new_metrics},
         )
 
-        # Responder con las métricas calculadas
-        return {
-            "status": "success",
-            "message": "Modelo reentrenado con nuevos datos.",
-            "metrics": new_metrics,
-        }
+        return response
 
     except Exception as e:
         # Manejo de errores
@@ -365,8 +362,3 @@ async def predict_batch_file(file: UploadFile = File(...)):
             {"file_name": file.filename},
             {"status": "error", "error": str(e)},
         )
-        return {
-            "status": "error",
-            "message": "Fallo en el reentrenamiento del modelo.",
-            "details": str(e),
-        }
