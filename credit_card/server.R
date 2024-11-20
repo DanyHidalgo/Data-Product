@@ -1,35 +1,41 @@
 library(shiny)
 library(ggplot2)
 library(DBI)
-library(RPostgreSQL)
+library(RPostgres)
 
 
 # Conectar 
-con <- dbConnect(RPostgreSQL::PostgreSQL(),
-                 dbname = "nombre_de_la_base_de_datos",
-                 host = "host_de_la_base_de_datos",
+con <- dbConnect(RPostgres::Postgres(),
+                 dbname = "test",
+                 host = "127.0.0.1",
                  port = 5432,
-                 user = "usuario_de_la_base_de_datos",
-                 password = "contraseña_del_usuario")
+                 user = "test",
+                 password = "test123")
 
 
 # Server 
+
 server <- function(input, output, session) {
+  
+  ## Numero de veces que el modelo es llamado
   output$plot1 <- renderPlot({
     data <- dbGetQuery(con, "x, y FROM datos_plot1")
     ggplot(data, aes(x = x, y = y)) + geom_line()
   })
   
+  ## Numero de filas predichas 
   output$plot2 <- renderPlot({
     data <- dbGetQuery(con, "SELECT x, y FROM datos_plot2")
     ggplot(data, aes(x = x, y = y)) + geom_bar(stat = "identity")
   })
   
+  ## Tiempo promedio de repsuestas
   output$plot3 <- renderPlot({
     data <- dbGetQuery(con, "SELECT x, y FROM tabla_datos_plot3")
     ggplot(data, aes(x = x, y = y)) + geom_histogram()
   })
   
+  ## Respuesta del modelo 
   output$plot4 <- renderPlot({
     data <- dbGetQuery(con, "SELECT x, y FROM tabla_datos_plot4")
     ggplot(data, aes(x = x, y = y)) + geom_point()
@@ -55,6 +61,8 @@ server <- function(input, output, session) {
       theme_minimal()
   })
   
+  
+  ## Batch prediction
   output$table1 <- renderTable({
     inFile <- input$file1
     if (is.null(inFile)) {
@@ -69,6 +77,13 @@ server <- function(input, output, session) {
       paste("Resultado de predicción para:", data)
     })
   })  
+  
+  ## Atomic prediction
+  output$result <- renderText({
+    if(input$predict > 0) {
+      paste("Resultado de la predicción:", input$time) 
+    }
+  })
   
   
   # Desconectar 
