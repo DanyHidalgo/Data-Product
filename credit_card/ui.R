@@ -6,14 +6,14 @@ fluidPage(
   tabsetPanel(type = "tabs",
               tabPanel("Telemetría del Modelo",
                        fluidRow(
-                         column(6, plotOutput("plot1")),
-                         column(6, plotOutput("plot2")),
-                         column(6, plotOutput("plot3"))
-                       )
+                         column(12, renderPlotly("plotCalls")),
+                         verbatimTextOutput("details")
+                         )
+                       
               ),
               tabPanel("Evaluación del Modelo",
                        fluidRow(
-                         column(12, plotOutput("plot4")),
+                         column(12, plotOutput("confusionMatrixPlot")),
                          column(12, plotOutput("metrics_plot"))
                        )
               ),
