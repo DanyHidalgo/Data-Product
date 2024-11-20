@@ -2,6 +2,10 @@ library(shiny)
 library(ggplot2)
 library(DBI)
 library(RPostgres)
+library(tidyr)
+library(dplyr)
+library(plotly)
+library(jsonlite)
 
 
 # Conectar 
@@ -17,28 +21,73 @@ con <- dbConnect(RPostgres::Postgres(),
 
 server <- function(input, output, session) {
   
-  ## Numero de veces que el modelo es llamado
-  output$plot1 <- renderPlot({
-    data <- dbGetQuery(con, "x, y FROM datos_plot1")
-    ggplot(data, aes(x = x, y = y)) + geom_line()
+  data <- reactive({
+    query <- "
+            SELECT DATE(timestamp) AS day, COUNT(timestamp) AS num_calls,
+                   AVG(response_time) AS avg_response_time, COUNT(predictions) AS num_predictions
+            FROM mage_ai.api_logs
+            GROUP BY DATE(timestamp)
+            ORDER BY day"
+    dbGetQuery(con, query)
   })
   
-  ## Numero de filas predichas 
-  output$plot2 <- renderPlot({
-    data <- dbGetQuery(con, "SELECT x, y FROM datos_plot2")
-    ggplot(data, aes(x = x, y = y)) + geom_bar(stat = "identity")
+  api_logs <- data.frame(
+    request = c("/Data.json", "/Data.json", "/Data1.csv"),
+    response = c('0', '{"predictions": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}', '{"predictions": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}'),
+    timestamp = as.POSIXct(c("2024-11-15 18:06:36", "2024-11-15 18:37:05", "2024-11-15 21:27:17"))
+  )
+  
+  output$plotCalls <- renderPlotly({
+    p <- ggplot(data(), aes(x = day, y = num_calls)) +
+      geom_bar(stat = "identity") +
+      labs(title = "Llamadas por Día", x = "Día", y = "Número de Llamadas")
+    ggplotly(p) %>%
+      layout(dragmode = "select")
   })
   
-  ## Tiempo promedio de repsuestas
-  output$plot3 <- renderPlot({
-    data <- dbGetQuery(con, "SELECT x, y FROM tabla_datos_plot3")
-    ggplot(data, aes(x = x, y = y)) + geom_histogram()
+  output$details <- renderPrint({
+    eventdata <- event_data("plotly_click")
+    if (!is.null(eventdata)) {
+      day_selected <- data()$day[eventdata$pointNumber + 1]
+      details <- data()[data()$day == day_selected,]
+      paste("Día seleccionado: ", day_selected, "\n",
+            "Tiempo promedio de respuesta: ", details$avg_response_time, "s\n",
+            "Número de predicciones: ", details$num_predictions)
+    } else {
+      "Haga clic en una barra para ver detalles."
+    }
   })
+
   
-  ## Respuesta del modelo 
-  output$plot4 <- renderPlot({
-    data <- dbGetQuery(con, "SELECT x, y FROM tabla_datos_plot4")
-    ggplot(data, aes(x = x, y = y)) + geom_point()
+  ## Matriz de Confusión
+  output$confusionMatrixPlot <- renderPlot({
+    cm_data <- dbGetQuery(con, 'SELECT timestamp, confusion_matrix_ai, confusion_matrix_ad, confusion_matrix_bi, confusion_matrix_bd
+                          FROM mage_ai.metrics
+                          ORDER BY timestamp DESC
+                          LIMIT 10')
+    confusion_data_long <- pivot_longer(
+      data = cm_data,
+      cols = c(confusion_matrix_ai, confusion_matrix_ad, confusion_matrix_bi, confusion_matrix_bd),
+      names_to = "Type",
+      values_to = "Count"
+    )
+    
+    confusion_data_long <- confusion_data_long %>%
+      mutate(Type = recode(Type,
+                           'confusion_matrix_ai' = 'True Positives',
+                           'confusion_matrix_ad' = 'False Positives',
+                           'confusion_matrix_bi' = 'False Negatives',
+                           'confusion_matrix_bd' = 'True Negatives'))
+    
+    ggplot(data = confusion_data_long, aes(x = timestamp, y = Count, color = Type)) +
+      geom_line() + 
+      geom_point() + 
+      labs(title = "Confusion Matrix Over Time ",
+           x = "Timestamp",
+           y = "Count",
+           color = "Type") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
   })
   
   
@@ -50,14 +99,15 @@ server <- function(input, output, session) {
   
   # Gráficos de métricas del modelo
   output$metrics_plot <- renderPlot({
-    metrics_data <- dbGetQuery(con, "SELECT Timestamp, Accuracy, Precision, Recall, F1_Score FROM mage_ai.metrics ORDER BY Timestamp DESC")
-    ggplot(metrics_data, aes(x = Timestamp)) + 
-      geom_line(aes(y = Accuracy, color = "Accuracy")) +
-      geom_line(aes(y = Precision, color = "Precision")) +
-      geom_line(aes(y = Recall, color = "Recall")) +
-      geom_line(aes(y = F1_Score, color = "F1_Score")) +
+    metrics_data <- dbGetQuery(con, "SELECT timestamp, accuracy, precision, recall, f1_score, roc_auc FROM mage_ai.metrics ORDER BY Timestamp DESC")
+    ggplot(metrics_data, aes(x = timestamp)) + 
+      geom_line(aes(y = accuracy, color = "Accuracy")) +
+      geom_line(aes(y = precision, color = "Precision")) +
+      geom_line(aes(y = recall, color = "Recall")) +
+      geom_line(aes(y = f1_score, color = "F1_Score")) +
+      geom_line(aes(y = roc_auc, color = "Roc_Auc")) +
       labs(title = "Metrics Over Time", x = "Timestamp", y = "Score") +
-      scale_color_manual(values = c("Accuracy" = "blue", "Precision" = "red", "Recall" = "green", "F1_Score" = "purple")) +
+      scale_color_manual(values = c("Accuracy" = "blue", "Precision" = "red", "Recall" = "green", "F1_Score" = "purple", "Roc_Auc"= "orange")) +
       theme_minimal()
   })
   
